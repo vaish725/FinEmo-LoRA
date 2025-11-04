@@ -1,0 +1,174 @@
+# FinEmo-LoRA Configuration File
+# Project: Fine-Grained Economic Emotion Interpretation from Financial News
+# Author: Vaishnavi Kamdi
+# Approach: Logits-based Classification (LLM embeddings + lightweight classifier)
+
+# Target Emotion Taxonomy (6 economic emotions)
+emotion_labels:
+  - anxiety
+  - excitement
+  - optimism
+  - fear
+  - uncertainty
+  - hope
+
+# Dataset Configuration
+datasets:
+  # FinGPT sentiment dataset (raw text source)
+  fingpt:
+    name: "FinGPT/fingpt-sentiment-train"
+    source: "huggingface"
+    use_for: "raw_text"
+    
+  # SEntFiN 1.0 dataset (raw text source with entity context)
+  sentfin:
+    name: "SEntFiN-1.0"
+    source: "kaggle"
+    kaggle_dataset: "sbhatti/sentfin-10"
+    use_for: "raw_text"
+    
+  # GoEmotions (transfer learning for emotion understanding)
+  goemotions:
+    name: "google-research-datasets/go_emotions"
+    source: "huggingface"
+    use_for: "transfer_learning"
+    emotion_mapping:
+      # Map GoEmotions' 27 emotions to our 6-emotion taxonomy
+      anxiety: ["nervousness", "fear", "confusion"]
+      excitement: ["excitement", "joy", "amusement"]
+      optimism: ["optimism", "approval", "caring", "gratitude"]
+      fear: ["fear", "nervousness", "disappointment"]
+      uncertainty: ["confusion", "realization", "surprise", "curiosity"]
+      hope: ["desire", "relief", "pride"]
+
+# LLM-based Annotation Configuration
+annotation:
+  # API configuration for pseudo-labeling
+  llm_provider: "openai"  # Options: openai, anthropic, together
+  model: "gpt-4o"  # GPT-4o for high-quality annotations
+  temperature: 0.1  # Low temperature for consistent labeling
+  max_tokens: 100
+  
+  # Confidence filtering threshold (0.0 to 1.0)
+  min_confidence: 0.7
+  
+  # Annotation batch size
+  batch_size: 50
+  
+  # Target sample size (reduced for 1-month timeline)
+  target_samples: 2000  # Reduced from 5000
+  
+  # Manual validation sample size
+  validation_sample_size: 100  # Reduced from 200
+  
+  # Output directory for annotated data
+  output_dir: "data/annotated"
+
+# Model Configuration (Logits-based Approach)
+model:
+  # Feature extraction models (frozen, no training)
+  feature_extractors:
+    distilbert:
+      name: "distilbert-base-uncased"
+      type: "encoder"
+      max_length: 512
+      batch_size: 32
+    finbert:
+      name: "ProsusAI/finbert"
+      type: "encoder"
+      max_length: 512
+      batch_size: 32
+    phi:
+      name: "microsoft/phi-2"
+      type: "causal_lm"
+      max_length: 512
+      batch_size: 16
+      quantization: "4bit"  # Optional for memory efficiency
+    llama:
+      name: "meta-llama/Meta-Llama-3.1-8B"
+      type: "causal_lm"
+      max_length: 512
+      batch_size: 8
+      quantization: "4bit"
+  
+  # Selected model for feature extraction
+  selected: "distilbert"  # Options: distilbert (public), finbert, phi, llama
+  
+  # Feature extraction configuration
+  feature_extraction:
+    pooling_strategy: "mean"  # Options: mean, cls, max, last
+    layer: -1  # Which layer to extract from (-1 = last layer)
+    normalize: true  # L2 normalize embeddings
+
+# Classifier Training Configuration (Logits-based Approach)
+classifier:
+  # Classifier types to experiment with
+  types:
+    mlp:
+      hidden_layers: [512, 256, 128]
+      activation: "relu"
+      dropout: 0.3
+      batch_size: 64
+      epochs: 50
+      learning_rate: 0.001
+      early_stopping_patience: 10
+    
+    xgboost:
+      n_estimators: 200
+      max_depth: 7
+      learning_rate: 0.1
+      subsample: 0.8
+      colsample_bytree: 0.8
+    
+    svm:
+      kernel: "rbf"
+      C: 1.0
+      gamma: "scale"
+    
+    random_forest:
+      n_estimators: 200
+      max_depth: 20
+      min_samples_split: 5
+  
+  # Selected classifier
+  selected: "mlp"  # Options: mlp, xgboost, svm, random_forest
+  
+  # Training settings
+  seed: 42
+  cross_validation_folds: 5  # For hyperparameter tuning
+  
+  # Output directories
+  output_dir: "models/classifiers"
+  feature_cache_dir: "data/features"
+
+# Evaluation Configuration
+evaluation:
+  # Metrics to compute
+  metrics:
+    - precision
+    - recall
+    - f1_score
+    - accuracy
+  
+  # Per-class evaluation
+  per_class_metrics: true
+  
+  # Confusion matrix
+  confusion_matrix: true
+  
+  # Test set split
+  test_size: 0.15
+  validation_size: 0.15
+  
+  # Results output
+  results_dir: "results"
+  
+# Paths
+paths:
+  data_raw: "data/raw"
+  data_processed: "data/processed"
+  data_annotated: "data/annotated"
+  models: "models"
+  results: "results"
+  logs: "logs"
+

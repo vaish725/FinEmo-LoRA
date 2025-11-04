@@ -1,0 +1,86 @@
+# FinEmo-LoRA .gitignore
+
+# Environment and credentials
+.env
+*.env
+kaggle.json
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
+venv/
+ENV/
+env/
+.venv
+
+# Jupyter Notebook
+.ipynb_checkpoints
+*.ipynb
+
+# Data directories (large files)
+data/raw/
+data/processed/
+data/annotated/
+
+# Model checkpoints and weights (large files)
+models/
+*.bin
+*.pt
+*.pth
+*.ckpt
+*.safetensors
+
+# Training logs
+logs/
+runs/
+tensorboard/
+wandb/
+
+# Results (comment out if you want to version control results)
+results/
+
+# IDE settings
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.bak
+*.log
+*.cache
+
+# Hugging Face cache
+.cache/
+transformers_cache/
+huggingface/
+
