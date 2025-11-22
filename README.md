@@ -392,7 +392,7 @@ annotation:
 
 ---
 
-## Key Files for Grading
+## Key Files
 
 ### Python Scripts (`scripts/` directory)
 
@@ -467,17 +467,6 @@ python run_pipeline.py --stage evaluate
 
 ---
 
-## Project Timeline
-
-- **Week 1-2:** Literature review, dataset identification
-- **Week 3-4:** Data collection pipeline, GPT-4 annotation system
-- **Week 5-6:** Feature-based classifier implementation
-- **Week 7-8:** Error analysis, annotation quality improvement
-- **Week 9-10:** LoRA pipeline implementation (in progress)
-- **Week 11-12:** Scaling up, final evaluation, documentation
-
----
-
 ## Acknowledgments
 
 - **Professor Joel Klein** - Course instruction and project guidance
@@ -490,7 +479,7 @@ python run_pipeline.py --stage evaluate
 
 ## License
 
-This project is for academic purposes as part of CSCI 4/6366 coursework at George Washington University.
+This project is for academic purposes as part of CSCI 6366 coursework at the George Washington University.
 
 ---
 
@@ -498,7 +487,7 @@ This project is for academic purposes as part of CSCI 4/6366 coursework at Georg
 
 **Vaishnavi Kamdi**  
 GitHub: [@vaish725](https://github.com/vaish725)  
-Course: CSCI 4/6366 Intro to Deep Learning  
+Course: CSCI 6366 Neural Networks and Deep Learning  
 Instructor: Professor Joel Klein ([@jdk514](https://github.com/jdk514))  
 George Washington University  
 Fall 2025  
