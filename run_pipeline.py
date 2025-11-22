@@ -50,8 +50,53 @@ def main():
                        help='Skip evaluation step')
     parser.add_argument('--annotation-samples', type=int, default=5000,
                        help='Number of samples to annotate (default: 5000)')
+    parser.add_argument('--stage', type=str, default='all',
+                       choices=['all', 'evaluate', 'download', 'annotation', 'stage1', 'stage2', 'train'],
+                       help='Run only a specific stage: evaluate, download, annotation, stage1, stage2, train (stage1+stage2), or all')
     
     args = parser.parse_args()
+
+    # If a specific --stage is provided, map it to the existing skip flags
+    if args.stage != 'all':
+        if args.stage == 'evaluate':
+            # Only run evaluation
+            args.skip_download = True
+            args.skip_annotation = True
+            args.skip_stage1 = True
+            args.skip_stage2 = True
+            args.skip_evaluation = False
+        elif args.stage == 'download':
+            # Only download datasets
+            args.skip_download = False
+            args.skip_annotation = True
+            args.skip_stage1 = True
+            args.skip_stage2 = True
+            args.skip_evaluation = True
+        elif args.stage == 'annotation':
+            args.skip_download = True
+            args.skip_annotation = False
+            args.skip_stage1 = True
+            args.skip_stage2 = True
+            args.skip_evaluation = True
+        elif args.stage == 'stage1':
+            args.skip_download = True
+            args.skip_annotation = True
+            args.skip_stage1 = False
+            args.skip_stage2 = True
+            args.skip_evaluation = True
+        elif args.stage == 'stage2':
+            args.skip_download = True
+            args.skip_annotation = True
+            args.skip_stage1 = True
+            args.skip_stage2 = False
+            args.skip_evaluation = True
+        elif args.stage == 'train':
+            # Run both stage1 and stage2 training
+            args.skip_download = True
+            args.skip_annotation = True
+            args.skip_stage1 = False
+            args.skip_stage2 = False
+            args.skip_evaluation = True
     
     print("=" * 80)
     print("FinEmo-LoRA Complete Pipeline")

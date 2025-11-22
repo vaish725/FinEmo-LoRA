@@ -1,31 +1,98 @@
-# FinEmo-LoRA: A Parameter-Efficient Approach to Fine-Grained Economic Emotion Interpretation from Financial News
+# FinEmo-LoRA: Fine-Grained Financial Emotion Classification
 
-A deep learning project that fine-tunes Large Language Models (LLMs) using Low-Rank Adaptation (LoRA) to classify financial text into six economic emotions: **anxiety**, **excitement**, **optimism**, **fear**, **uncertainty**, and **hope**.
-
-**Author:** Vaishnavi Kamdi  
-**Course:** CSCI 6907 Neural Networks and Deep Learning  
-**Institution:** George Washington University  
-**Professor:** Joel Klein
+A deep learning project exploring parameter-efficient approaches to classify financial text into six nuanced economic emotions: **anxiety**, **excitement**, **optimism**, **fear**, **uncertainty**, and **hope**.
 
 ---
 
-## Overview
+## Team Members
 
-Traditional financial sentiment analysis oversimplifies market reactions into basic Positive/Negative/Neutral classifications. FinEmo-LoRA addresses this limitation by:
+- **Vaishnavi Kamdi** - GitHub: [@vaish725](https://github.com/vaish725)
 
-1. **Fine-Grained Emotion Classification**: Classifying financial text into 6 nuanced economic emotions
-2. **Parameter-Efficient Training**: Using LoRA for memory-efficient fine-tuning
-3. **Two-Stage Training**: Transfer learning on GoEmotions followed by financial domain adaptation
-4. **LLM-Based Annotation**: Using GPT-4 for high-quality pseudo-labeling of financial text
+**Course:** CSCI 4/6366 Intro to Deep Learning  
+**Institution:** George Washington University  
+**Instructor:** Professor Joel Klein (GitHub: [@jdk514](https://github.com/jdk514))  
+**Semester:** Fall 2025
 
-### Key Features
+---
 
-- Two-stage training pipeline (emotion understanding → financial domain specialization)
-- Support for Llama 3.1 8B and Microsoft Phi-2 base models
-- Automated LLM-based annotation with confidence filtering
-- Comprehensive evaluation with per-class metrics and confusion matrices
-- QLoRA (4-bit quantization) for memory-efficient training
-- Fully configurable via YAML
+## Project Summary
+
+Traditional financial sentiment analysis oversimplifies market reactions into basic Positive/Negative/Neutral classifications. This project develops a more sophisticated emotion classification system that captures six nuanced economic emotions in financial news and social media text.
+
+**Key Objectives:**
+1. Build a 6-class emotion classifier for financial text
+2. Compare two approaches: lightweight feature-based vs. parameter-efficient fine-tuning
+3. Address data quality challenges through automated annotation cleaning
+4. Achieve >75% accuracy with interpretable per-class performance
+
+**Current Status (Deliverable II):**
+- ✅ Data collection and preprocessing pipeline complete
+- ✅ GPT-4-based annotation system implemented
+- ✅ Lightweight classifier (DistilBERT + MLP) trained and evaluated
+- ✅ Error analysis and annotation quality review completed
+- 🔄 Dataset cleaning and retraining in progress
+- ⏳ LoRA fine-tuning pipeline next phase
+
+---
+
+## Dataset Sources
+
+All datasets used in this project are publicly available:
+
+### 1. FinGPT Sentiment Dataset
+- **Source:** [FinGPT GitHub Repository](https://github.com/FinancialDiets/FINGPT)
+- **Description:** Financial news headlines and social media posts with sentiment labels
+- **License:** Apache 2.0
+- **Usage:** Primary source for financial text to be annotated with emotions
+
+### 2. SEntFiN (Sentiment in Financial News)
+- **Source:** [SEntFiN Kaggle Dataset](https://www.kaggle.com/datasets/ankurzing/sentiment-analysis-for-financial-news)
+- **Description:** Entity-aware sentiment analysis for financial news
+- **License:** CC BY-SA 4.0
+- **Usage:** Additional financial domain text for training
+
+### 3. GoEmotions
+- **Source:** [Google Research GoEmotions](https://github.com/google-research/google-research/tree/master/goemotions)
+- **Paper:** [GoEmotions: A Dataset of Fine-Grained Emotions](https://arxiv.org/abs/2005.00547)
+- **Description:** 58k Reddit comments labeled with 27 emotions
+- **License:** Apache 2.0
+- **Usage:** Transfer learning for general emotion understanding (Stage 1)
+
+---
+
+## Methodology & Approach
+
+### Two-Track Exploration
+
+This project explores **two complementary approaches** to financial emotion classification:
+
+#### Track 1: Logits-Based Classification (Current Implementation)
+- **Architecture:** Frozen DistilBERT feature extractor + lightweight MLP/XGBoost classifier
+- **Advantages:** Fast training (minutes), CPU-friendly, interpretable
+- **Status:** ✅ Complete - Achieved 63.33% accuracy on initial data
+- **Challenge Identified:** Annotation quality issues causing performance ceiling
+
+#### Track 2: LoRA Fine-Tuning (Planned)
+- **Architecture:** Two-stage LoRA fine-tuning (Llama 3.1 8B or Phi-2)
+- **Stage 1:** Transfer learning on GoEmotions (27 emotions → 6 economic emotions)
+- **Stage 2:** Financial domain adaptation on annotated FinGPT data
+- **Advantages:** Higher capacity, end-to-end learning, state-of-the-art potential
+- **Status:** 🔄 Pipeline ready, awaiting cleaned dataset
+
+### Current Focus: Data Quality Improvement
+
+**Discovery:** Error analysis revealed that ~60-70% of "optimism" labels were neutral factual statements (e.g., "Company acquires assets for €420 million").
+
+**Action Taken:**
+1. Created automated review tool (`review_annotations.py`) with sentiment heuristics
+2. Cleaned 83 optimism samples → 54 true optimism + 18 relabeled to uncertainty
+3. Merged cleaned data into `fingpt_annotated_v2.csv` (189 samples)
+4. Retrained with class-weighted loss to handle imbalance
+
+**Next Steps:**
+- Analyze performance on cleaned data vs. original
+- Consider 3-class taxonomy (negative/positive/uncertainty) for small dataset
+- Scale up annotation to 500+ samples for 6-class classification
 
 ---
 
@@ -40,68 +107,75 @@ FinEmo-LoRA/
 │
 ├── data/
 │   ├── raw/                           # Raw downloaded datasets
-│   │   ├── fingpt/                    # FinGPT sentiment data
-│   │   ├── sentfin/                   # SEntFiN entity-aware sentiment
-│   │   └── goemotions/                # GoEmotions 27-emotion dataset
-│   ├── processed/                     # Preprocessed datasets
-│   │   ├── goemotions/                # Mapped to 6-emotion taxonomy
-│   │   └── financial_emotion_splits/  # Train/val/test splits
-│   └── annotated/                     # LLM-annotated financial text
+│   │   └── fingpt/                    # FinGPT sentiment data (200 samples)
+│   ├── annotated/                     # LLM-annotated financial text
+│   │   ├── fingpt_annotated.csv       # Original GPT-4 annotations
+│   │   └── fingpt_annotated_v2.csv    # Cleaned annotations (189 samples)
+│   └── features/                      # Extracted DistilBERT features
+│       ├── train_features.npy         # Original features (200x768)
+│       └── train_features_v2.npy      # Cleaned features (189x768)
 │
 ├── models/
-│   ├── checkpoints/                   # Training checkpoints
-│   │   ├── stage1_goemotions/         # Stage 1 checkpoints
-│   │   └── stage2_financial/          # Stage 2 checkpoints
-│   ├── stage1_final/                  # Stage 1 final model
-│   └── finemo-lora-final/             # Final FinEmo-LoRA model
-│       └── merged/                    # Merged model (LoRA + base)
+│   ├── classifiers/                   # Trained lightweight classifiers
+│   │   ├── mlp_*.pkl                  # MLP PyTorch models
+│   │   ├── xgboost_*.pkl              # XGBoost models
+│   │   └── confusion_matrix_*.png     # Confusion matrices
+│   └── finemo-lora-final/             # (Future) LoRA fine-tuned model
 │
 ├── scripts/
 │   ├── data_collection/               # Dataset download & preprocessing
 │   │   ├── download_fingpt.py         # Download FinGPT data
-│   │   ├── download_sentfin.py        # Download SEntFiN data
-│   │   ├── download_goemotions.py     # Download GoEmotions data
-│   │   └── preprocess_goemotions.py   # Map GoEmotions to 6 emotions
-│   ├── annotation/                    # LLM-based annotation pipeline
-│   │   ├── llm_annotator.py           # GPT-4 annotation script
-│   │   └── validate_annotations.py    # Validation & agreement metrics
-│   ├── training/                      # Training pipelines
+│   │   ├── download_sentfin.py        # Download SEntFiN (Kaggle)
+│   │   └── download_goemotions.py     # Download GoEmotions
+│   ├── annotation/                    # Annotation quality control
+│   │   ├── llm_annotator.py           # GPT-4 annotation with confidence
+│   │   ├── review_annotations.py      # Automated annotation cleaning
+│   │   └── merge_cleaned_annotations.py # Merge cleaned data
+│   ├── feature_extraction/            # Feature extraction pipeline
+│   │   └── extract_features.py        # DistilBERT feature extraction
+│   ├── classifier/                    # Lightweight classifier training
+│   │   └── train_classifier.py        # MLP/XGBoost training
+│   ├── training/                      # (Future) LoRA training pipelines
 │   │   ├── train_stage1_goemotions.py # Stage 1: Emotion understanding
-│   │   └── train_stage2_financial.py  # Stage 2: Financial adaptation
+│   │   ├── train_stage2_financial.py  # Stage 2: Financial adaptation
+│   │   └── retrain_with_cleaned_data.py # Retrain with cleaned data
 │   └── evaluation/                    # Evaluation framework
-│       └── evaluate.py                # Comprehensive evaluation
+│       ├── evaluate.py                # Comprehensive evaluation
+│       └── run_full_evaluation.py     # CPU-friendly evaluation
 │
 ├── results/                           # Evaluation results
-│   ├── predictions_*.csv              # Model predictions
-│   ├── metrics_*.json                 # Performance metrics
-│   ├── confusion_matrix_*.png         # Confusion matrix plots
-│   └── error_analysis_*.csv           # Misclassification analysis
+│   └── evaluation_20251103/           # Latest evaluation results
 │
-├── logs/                              # Training logs (TensorBoard)
-└── notebooks/                         # Jupyter notebooks for analysis
+├── logs/                              # Training logs
+├── notebooks/                         # Analysis notebooks
+├── config.yaml                        # Central configuration
+├── requirements.txt                   # Python dependencies
+├── run_pipeline.py                    # Main orchestration script
+└── README.md                          # This file
 ```
 
 ---
 
-## Installation
+## Installation & Setup
 
 ### Prerequisites
 
-- Python 3.10 or higher
-- CUDA-capable GPU (recommended: 16GB+ VRAM)
-- 50GB+ free disk space
+- **Python 3.10+** (tested on Python 3.13.7)
+- **CPU or GPU:** Current implementation runs on CPU (no GPU required)
+- **For LoRA training (future):** CUDA-capable GPU with 16GB+ VRAM recommended
 
-### Setup Instructions
+### Quick Start
 
 1. **Clone the repository**
    ```bash
-   cd "/Users/vaishnavikamdi/Documents/GWU/Classes/Fall 2025/NNDL/FinEmo-LoRA"
+   git clone https://github.com/vaish725/FinEmo-LoRA.git
+   cd FinEmo-LoRA
    ```
 
-2. **Create a virtual environment**
+2. **Create virtual environment**
    ```bash
-   python -m venv venv
-   source venv/bin/activate  # On Windows: venv\Scripts\activate
+   python -m venv .venv
+   source .venv/bin/activate  # On Windows: .venv\Scripts\activate
    ```
 
 3. **Install dependencies**
@@ -109,272 +183,322 @@ FinEmo-LoRA/
    pip install -r requirements.txt
    ```
 
-4. **Configure environment variables**
+4. **Download sample data**
    ```bash
-   cp .env.example .env
-   # Edit .env and add your API keys:
-   # - OPENAI_API_KEY (for GPT-4 annotation)
-   # - HF_TOKEN (for Llama model access)
-   # - WANDB_API_KEY (optional, for experiment tracking)
+   # Download FinGPT dataset
+   python scripts/data_collection/download_fingpt.py
    ```
 
-5. **Configure Kaggle API** (for SEntFiN dataset)
+5. **Run evaluation on existing model**
    ```bash
-   # Download kaggle.json from https://www.kaggle.com/settings/account
-   mkdir -p ~/.kaggle
-   mv kaggle.json ~/.kaggle/
-   chmod 600 ~/.kaggle/kaggle.json
+   # Evaluate pre-trained classifier
+   python run_pipeline.py --stage evaluate
    ```
 
 ---
 
-## Usage
+## Initial Work & Current Results
 
-### Step 1: Download Datasets
+### Completed Components
 
+#### 1. Data Pipeline (✅ Complete)
 ```bash
-# Download FinGPT sentiment dataset
+# Download financial news data
 python scripts/data_collection/download_fingpt.py
+```
+- Downloaded 200 FinGPT samples for initial experiments
+- Implemented data loaders and preprocessing utilities
 
-# Download SEntFiN dataset (requires Kaggle API)
-python scripts/data_collection/download_sentfin.py
+#### 2. GPT-4 Annotation System (✅ Complete)
+```python
+from scripts.annotation.llm_annotator import LLMAnnotator
 
-# Download GoEmotions dataset
-python scripts/data_collection/download_goemotions.py
+annotator = LLMAnnotator(api_key="your-key")
+annotator.annotate_batch(texts, batch_size=50)
+```
+- Created prompt engineering system for 6-emotion classification
+- Implemented confidence scoring and batch processing
+- Generated 200 annotated samples with reasoning
 
-# Preprocess GoEmotions: Map 27 emotions to our 6 economic emotions
-python scripts/data_collection/preprocess_goemotions.py
+**Example Annotation:**
+```
+Text: "Federal Reserve signals potential rate hikes amid inflation concerns"
+Emotion: anxiety
+Confidence: 0.85
+Reasoning: "Text conveys worry about future economic conditions due to potential 
+           rate increases and inflation."
 ```
 
-### Step 2: Annotate Financial Text with Emotions
-
+#### 3. Feature-Based Classifier (✅ Complete)
 ```bash
-# Use GPT-4 to annotate financial text with 6-emotion taxonomy
-python -c "
-from scripts.annotation.llm_annotator import annotate_dataset
-
-annotate_dataset(
-    input_path='data/raw/fingpt/train.csv',
-    output_path='data/annotated/fingpt_annotated.csv',
-    text_column='text',  # Adjust column name based on actual data
-    max_samples=5000,    # Start with 5000 samples
-    batch_size=50
-)
-"
+# Train lightweight classifier
+python scripts/classifier/train_classifier.py
 ```
 
-**Note:** Annotation uses GPT-4 API and may incur costs. Start with a small sample for testing.
+**Architecture:**
+- **Feature Extractor:** DistilBERT (768-dimensional embeddings, frozen)
+- **Classifier:** 3-layer MLP (768 → 512 → 256 → 128 → 6 classes)
+- **Training:** Cross-entropy loss with class weights
+- **Inference:** CPU-friendly (3-4 seconds per batch of 32)
 
-### Step 3: Validate Annotations (Optional but Recommended)
+**Results (Initial Model):**
+```
+Accuracy: 63.33%
+Macro F1: 0.33
 
+Per-Class F1 Scores:
+  anxiety:      0.57
+  excitement:   0.00  ⚠️
+  fear:         0.00  ⚠️
+  hope:         1.00
+  optimism:     0.00  ⚠️
+  uncertainty:  0.42
+```
+
+#### 4. Error Analysis & Data Quality Review (✅ Complete)
+
+**Key Finding:** Manual inspection revealed **annotation quality issues**:
+- 60-70% of "optimism" labels were neutral factual statements
+- Example: "Company acquires €420M in assets" (factual, not emotional)
+- GPT-4 confused business-positive context with emotional optimism
+
+**Solution Implemented:**
 ```bash
-# Create a validation sample
-python -c "
-from scripts.annotation.validate_annotations import create_validation_sample
+# Automated annotation cleaning
+python scripts/annotation/review_annotations.py --auto
 
-create_validation_sample(
-    annotated_file='data/annotated/fingpt_annotated_high_confidence.csv',
-    output_file='data/annotated/validation_sample.csv',
-    sample_size=200
-)
-"
-
-# Manually annotate the validation sample, then compute agreement
-python -c "
-from scripts.annotation.validate_annotations import compute_agreement
-
-compute_agreement(
-    validation_file='data/annotated/validation_sample.csv'
-)
-"
+# Results:
+# - Original: 83 optimism samples
+# - Cleaned: 54 true optimism + 18 relabeled to uncertainty + 11 removed
 ```
 
-### Step 4: Stage 1 Training - Transfer Learning on GoEmotions
-
+#### 5. Dataset Cleaning & Retraining (🔄 In Progress)
 ```bash
-# Fine-tune base model (Llama 3.1 8B or Phi-2) on mapped GoEmotions
-# This teaches the model general emotion classification
-python scripts/training/train_stage1_goemotions.py
+# Merge cleaned annotations
+python scripts/annotation/merge_cleaned_annotations.py
+
+# Retrain with cleaned data
+python scripts/training/retrain_with_cleaned_data.py --classifier mlp
 ```
 
-**Training Configuration** (in `config.yaml`):
-- Epochs: 3
-- Batch size: 16 (with gradient accumulation)
-- Learning rate: 2e-4
-- Max sequence length: 256
-- LoRA rank: 16
+**Cleaned Dataset Stats:**
+```
+Total samples: 189 (down from 200)
+Class distribution:
+  uncertainty:  76 (40.2%)  ↑ +18
+  optimism:     54 (28.6%)  ↓ -29
+  anxiety:      22 (11.6%)
+  excitement:   19 (10.1%)
+  fear:         12 (6.3%)
+  hope:          6 (3.2%)
 
-**Estimated Time:** 4-8 hours on a single GPU (depends on GPU model)
-
-### Step 5: Stage 2 Training - Financial Domain Adaptation
-
-```bash
-# Fine-tune Stage 1 model on annotated financial emotion dataset
-# This specializes the model for economic emotion interpretation
-python scripts/training/train_stage2_financial.py
+Class imbalance: 12.7x (improved from 13.8x)
 ```
 
-**Training Configuration** (in `config.yaml`):
-- Epochs: 5
-- Batch size: 8 (with gradient accumulation)
-- Learning rate: 1e-4
-- Max sequence length: 512
-- LoRA rank: 16
+### Current Challenges
 
-**Estimated Time:** 2-4 hours on a single GPU
+1. **Small Dataset:** 189 samples insufficient for robust 6-class classification
+2. **Class Imbalance:** 12.7x ratio between most/least frequent classes
+3. **Rare Classes:** Hope (6), fear (12), excitement (19) have very few samples
 
-### Step 6: Evaluate the Model
+### Next Steps
 
-```bash
-# Comprehensive evaluation on test set
-python scripts/evaluation/evaluate.py
-```
+**Short-term (Before Final Deliverable):**
+1. ✅ Analyze retraining results on cleaned data
+2. 🔄 Consider 3-class taxonomy (negative/positive/uncertainty) for better performance
+3. ⏳ Scale up annotation to 500+ samples
+4. ⏳ Implement Stage 1 LoRA training on GoEmotions
 
-**Evaluation Outputs:**
-- Overall accuracy and macro-averaged metrics
-- Per-class Precision, Recall, F1-Score
-- Confusion matrix visualization
-- Error analysis with misclassification patterns
-- Predictions CSV for manual review
+**Long-term (Post-Course):**
+- Complete two-stage LoRA fine-tuning pipeline
+- Expand dataset to 5000+ samples
+- Benchmark against FinBERT and other financial NLP models
 
 ---
 
-## Configuration
+## Technical Details
 
-All project settings are controlled via `config.yaml`. Key sections:
+### Emotion Taxonomy (6 Economic Emotions)
 
-### Emotion Labels
+| Emotion | Definition | Example |
+|---------|------------|---------|
+| **Anxiety** | Worry about uncertain economic outcomes | "Inflation concerns weigh on consumer spending" |
+| **Excitement** | Enthusiasm about positive developments | "Tech stocks surge on breakthrough AI earnings" |
+| **Optimism** | Positive long-term economic outlook | "Analysts predict robust growth for next quarter" |
+| **Fear** | Strong concern about negative outcomes | "Market panic triggers mass sell-off" |
+| **Uncertainty** | Lack of clarity about economic direction | "Fed officials remain divided on policy path" |
+| **Hope** | Desire for positive future outcomes | "Investors await potential recovery signals" |
+
+### Architecture Comparison
+
+#### Current: Logits-Based Classifier
+```
+Input Text → DistilBERT (frozen) → 768-dim features → MLP → 6 emotions
+                                                       ↓
+                                            Class-weighted loss
+```
+- **Pros:** Fast training, CPU-friendly, interpretable
+- **Cons:** Limited capacity, can't learn text patterns
+
+#### Planned: LoRA Fine-Tuning
+```
+Stage 1: GoEmotions (58k samples, 27 emotions)
+         ↓
+    Llama 3.1 8B + LoRA (r=16) → Emotion-aware base
+         ↓
+Stage 2: Financial text (500+ samples, 6 emotions)
+         ↓
+    Further LoRA tuning → FinEmo-LoRA
+```
+- **Pros:** End-to-end learning, higher capacity, SOTA potential
+- **Cons:** GPU required, longer training (6-12 hours)
+
+### Configuration (`config.yaml`)
+
+Key settings that control the project:
+
 ```yaml
+# Emotion labels
 emotion_labels:
   - anxiety
-  - excitement
+  - excitement  
   - optimism
   - fear
   - uncertainty
   - hope
-```
 
-### Model Selection
-```yaml
+# Model selection
 model:
-  selected: "llama"  # Options: "llama" or "phi"
-  
-  base_models:
-    llama:
-      name: "meta-llama/Meta-Llama-3.1-8B"
-    phi:
-      name: "microsoft/phi-2"
-```
+  selected: "distilbert"  # Options: distilbert, llama, phi
+  device: "cpu"           # cpu, cuda, or mps (Apple Silicon)
 
-### LoRA Configuration
-```yaml
-lora:
-  r: 16                    # LoRA rank (higher = more parameters)
-  lora_alpha: 32           # LoRA scaling factor
-  target_modules: ["q_proj", "v_proj", "k_proj", "o_proj"]
-  lora_dropout: 0.05
-```
+# Classifier training
+classifier:
+  selected: "mlp"         # Options: mlp, xgboost
+  types:
+    mlp:
+      hidden_layers: [512, 256, 128]
+      dropout: 0.3
+      learning_rate: 0.001
+      epochs: 50
+      batch_size: 16
 
-### Annotation Configuration
-```yaml
+# Annotation
 annotation:
   llm_provider: "openai"
   model: "gpt-4o"
-  min_confidence: 0.7      # Filter low-confidence annotations
-  batch_size: 50
+  min_confidence: 0.7
 ```
 
 ---
 
-## Methodology
+## Key Files for Grading
 
-### Two-Stage Training Approach
+### Python Scripts (`scripts/` directory)
 
-**Stage 1: Emotion Understanding (Transfer Learning)**
-- Dataset: GoEmotions (27 emotions → mapped to 6)
-- Purpose: Learn general emotion classification
-- Base: General Reddit text with emotion labels
-- Output: Emotion-aware model
+1. **Data Collection**
+   - `scripts/data_collection/download_fingpt.py` - Download FinGPT dataset
+   - Implements automated data fetching and preprocessing
 
-**Stage 2: Financial Domain Adaptation**
-- Dataset: LLM-annotated financial text (FinGPT + SEntFiN)
-- Purpose: Specialize for economic emotions in financial context
-- Base: Stage 1 model
-- Output: FinEmo-LoRA final model
+2. **Annotation System**
+   - `scripts/annotation/llm_annotator.py` - GPT-4-based emotion annotation
+   - `scripts/annotation/review_annotations.py` - Automated quality control
+   - `scripts/annotation/merge_cleaned_annotations.py` - Dataset merging
 
-### LoRA (Low-Rank Adaptation)
+3. **Feature Extraction**
+   - `scripts/feature_extraction/extract_features.py` - DistilBERT feature extraction
 
-LoRA enables efficient fine-tuning by:
-- Adding trainable low-rank matrices to attention layers
-- Freezing base model weights
-- Training only ~0.1-1% of total parameters
-- Reducing memory requirements by 80-90%
+4. **Model Training**
+   - `scripts/classifier/train_classifier.py` - MLP/XGBoost classifier training
+   - `scripts/training/retrain_with_cleaned_data.py` - Retraining pipeline
 
-### LLM-Based Annotation Pipeline
+5. **Evaluation**
+   - `scripts/evaluation/run_full_evaluation.py` - Complete evaluation pipeline
+   - Generates confusion matrices, per-class metrics, error analysis
 
-1. **Prompt Engineering**: Carefully crafted system prompt defines 6 emotions with examples
-2. **Batch Processing**: Annotate financial texts in batches
-3. **Confidence Scoring**: GPT-4 provides confidence for each annotation
-4. **Quality Filtering**: Keep only high-confidence annotations (≥0.7)
-5. **Manual Validation**: Sample validation for quality assurance
+### Notebooks (`notebooks/` directory)
+
+- **Data exploration notebooks** - Analysis of emotion distributions, text lengths
+- **Error analysis notebooks** - Visualization of misclassifications
+- *(Note: Notebooks in development, scripts are primary deliverables)*
+
+### Main Orchestration
+
+- `run_pipeline.py` - Main script coordinating all stages
+- `config.yaml` - Central configuration file
+
+### Example Execution
+
+```bash
+# Complete pipeline (download → annotate → train → evaluate)
+python run_pipeline.py --stage all
+
+# Run only evaluation on existing model
+python run_pipeline.py --stage evaluate
+```
 
 ---
 
-## Research Papers & Resources
+## References & Related Work
 
-This project is based on the following research:
+### Research Papers
 
-1. **FNSPID: A Comprehensive Financial News Dataset in Time Series**  
-   https://arxiv.org/pdf/2402.06698
+1. **GoEmotions: A Dataset of Fine-Grained Emotions**  
+   Demszky et al., 2020 | [arXiv:2005.00547](https://arxiv.org/abs/2005.00547)
+   - Inspiration for fine-grained emotion taxonomy
 
-2. **FinLoRA: Benchmarking LoRA methods for fine-tuning LLMs for financial datasets**  
-   https://arxiv.org/html/2505.19819v1
+2. **LoRA: Low-Rank Adaptation of Large Language Models**  
+   Hu et al., 2021 | [arXiv:2106.09685](https://arxiv.org/abs/2106.09685)
+   - Foundation for parameter-efficient fine-tuning approach
 
-3. **Parameter-efficient fine tuning of LLaMa for sentiment analysis for enhanced stock price prediction**  
-   https://www.henryszhang.com/static/media/35_Parameter_Efficient_Fine_Tu.a9386bf67cdb60c44871.pdf
+3. **FNSPID: A Comprehensive Financial News Dataset**  
+   [arXiv:2402.06698](https://arxiv.org/pdf/2402.06698)
+   - Comprehensive financial NLP dataset overview
 
-### GitHub Repositories
+4. **Parameter-efficient fine tuning of LLaMa for sentiment analysis**  
+   [Research Link](https://www.henryszhang.com/static/media/35_Parameter_Efficient_Fine_Tu.a9386bf67cdb60c44871.pdf)
+   - LoRA application to financial sentiment
+
+### GitHub Resources
 
 - **FinGPT**: https://github.com/FinancialDiets/FINGPT
-- **Phi-2 LoRA Fine-tuning**: https://github.com/KaifAhmad1/LLM-FineTuning-for-Sentiment-Classification
-- **Llama 3.1 QLoRA Fine-tuning**: https://github.com/matteo-stat/transformers-llm-llama3.1-fine-tuning-qlora
+- **Hugging Face Transformers**: https://github.com/huggingface/transformers
+- **PEFT (Parameter-Efficient Fine-Tuning)**: https://github.com/huggingface/peft
 
 ---
 
-## Citation
+## Project Timeline
 
-If you use this project in your research, please cite:
-
-```
-@misc{kamdi2025finemo,
-  author = {Kamdi, Vaishnavi},
-  title = {FinEmo-LoRA: A Parameter-Efficient Approach to Fine-Grained Economic Emotion Interpretation from Financial News},
-  year = {2025},
-  institution = {George Washington University},
-  course = {CSCI 6907 Neural Networks and Deep Learning},
-  professor = {Joel Klein}
-}
-```
-
----
-
-## License
-
-This project is for academic purposes as part of CSCI 6907 coursework at George Washington University.
+- **Week 1-2:** Literature review, dataset identification
+- **Week 3-4:** Data collection pipeline, GPT-4 annotation system
+- **Week 5-6:** Feature-based classifier implementation
+- **Week 7-8:** Error analysis, annotation quality improvement
+- **Week 9-10:** LoRA pipeline implementation (in progress)
+- **Week 11-12:** Scaling up, final evaluation, documentation
 
 ---
 
 ## Acknowledgments
 
-- **Professor Joel Klein** for guidance and course instruction
-- **Hugging Face** for transformers library and model hosting
-- **Google Research** for GoEmotions dataset
-- **FinGPT Team** for financial NLP resources
-- **OpenAI** for GPT-4 API enabling high-quality annotation
+- **Professor Joel Klein** - Course instruction and project guidance
+- **Google Research** - GoEmotions dataset
+- **OpenAI** - GPT-4 API for annotation
+- **Hugging Face** - Transformers library and model hosting
+- **FinGPT Team** - Financial NLP resources
+
+---
+
+## License
+
+This project is for academic purposes as part of CSCI 4/6366 coursework at George Washington University.
 
 ---
 
 ## Contact
 
 **Vaishnavi Kamdi**  
+GitHub: [@vaish725](https://github.com/vaish725)  
+Course: CSCI 4/6366 Intro to Deep Learning  
+Instructor: Professor Joel Klein ([@jdk514](https://github.com/jdk514))  
 George Washington University  
+Fall 2025  

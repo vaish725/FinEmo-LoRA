@@ -92,7 +92,12 @@ model:
       quantization: "4bit"
   
   # Selected model for feature extraction
-  selected: "distilbert"  # Options: distilbert (public), finbert, phi, llama
+  # IMPORTANT: distilbert and finbert are CPU-friendly (no GPU required)
+  # phi and llama require GPU or are very slow on CPU
+  selected: "distilbert"  # Options: distilbert (CPU-friendly), finbert (CPU-friendly), phi (GPU), llama (GPU)
+  
+  # Device configuration
+  device: "cpu"  # Options: cpu, mps (Apple Silicon), cuda (GPU), auto
   
   # Feature extraction configuration
   feature_extraction:

@@ -35,6 +35,7 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader, TensorDataset
 from tqdm import tqdm
+from sklearn.utils.class_weight import compute_class_weight
 
 def load_config():
     """Load project configuration"""
@@ -130,8 +131,20 @@ def train_mlp_pytorch(X_train, y_train, X_val, y_val, config, num_classes):
     print(model)
     print(f"\nTrainable parameters: {sum(p.numel() for p in model.parameters()):,}")
     
-    # Loss and optimizer
-    criterion = nn.CrossEntropyLoss()
+    # Compute class weights to handle imbalance
+    class_weights = compute_class_weight(
+        'balanced',
+        classes=np.unique(y_train),
+        y=y_train
+    )
+    class_weights_tensor = torch.FloatTensor(class_weights).to(device)
+    
+    print(f"\nClass weights (to handle imbalance):")
+    for i, weight in enumerate(class_weights):
+        print(f"  Class {i}: {weight:.3f}")
+    
+    # Loss and optimizer with class weights
+    criterion = nn.CrossEntropyLoss(weight=class_weights_tensor)
     optimizer = optim.Adam(model.parameters(), lr=mlp_config['learning_rate'])
     
     # Training loop
