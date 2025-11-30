@@ -39,20 +39,24 @@ env/
 
 # Jupyter Notebook
 .ipynb_checkpoints
-*.ipynb
+# *.ipynb  # COMMENTED OUT - we want to track notebooks!
 
 # Data directories (large files)
-data/raw/
+data/raw/  # Keep ignored - 17MB, can re-download
 data/processed/
-data/annotated/
+# data/annotated/  # COMMENTED OUT - enhanced dataset is important (2.4MB)
+data/features/*.npy  # Binary files, but keep .json
 
 # Model checkpoints and weights (large files)
-models/
-*.bin
-*.pt
-*.pth
-*.ckpt
-*.safetensors
+# Keep adapters but ignore large base model files
+models/checkpoints/
+models/classifiers/*.pkl  # Large trained classifiers
+!models/classifiers/README.md  # But keep documentation
+models/**/pytorch_model.bin  # Ignore base model weights
+models/**/model.safetensors  # Ignore base model weights
+# Allow LoRA adapters (small, ~3MB)
+!models/**/adapter_model.safetensors
+!models/**/adapter_config.json
 
 # Training logs
 logs/
