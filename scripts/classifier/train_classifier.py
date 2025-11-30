@@ -24,7 +24,7 @@ from sklearn.metrics import (
 )
 
 # Classifier imports
-from sklearn.neural_network import MLPClassifier
+from sklearn.neural_network import MLPClassifier as SklearnMLP
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.svm import SVC
 import xgboost as xgb
@@ -80,7 +80,34 @@ class MLPClassifierPyTorch(nn.Module):
         """Forward pass"""
         return self.model(x)
 
-def train_mlp_pytorch(X_train, y_train, X_val, y_val, config, num_classes):
+class ImprovedMLPClassifier(nn.Module):
+    """
+    Deeper MLP with optional batch normalization for better performance
+    Targets 75-80% accuracy with larger datasets
+    """
+    def __init__(self, input_dim=768, hidden_dims=[512, 384, 256, 128], 
+                 num_classes=6, dropout=0.4, use_batchnorm=False):
+        super(ImprovedMLPClassifier, self).__init__()
+        
+        layers = []
+        prev_dim = input_dim
+        
+        for i, hidden_dim in enumerate(hidden_dims):
+            layers.append(nn.Linear(prev_dim, hidden_dim))
+            if use_batchnorm:
+                layers.append(nn.BatchNorm1d(hidden_dim))
+            layers.append(nn.ReLU())
+            layers.append(nn.Dropout(dropout))
+            prev_dim = hidden_dim
+        
+        layers.append(nn.Linear(prev_dim, num_classes))
+        
+        self.model = nn.Sequential(*layers)
+    
+    def forward(self, x):
+        return self.model(x)
+
+def train_mlp_pytorch(X_train, y_train, X_val, y_val, config, num_classes, use_improved=False):
     """
     Train MLP classifier using PyTorch
     
@@ -91,12 +118,13 @@ def train_mlp_pytorch(X_train, y_train, X_val, y_val, config, num_classes):
         y_val: Validation labels
         config: Classifier configuration
         num_classes: Number of classes
+        use_improved: Use improved architecture with BatchNorm
         
     Returns:
         Trained model
     """
     print("\n" + "=" * 80)
-    print("Training MLP Classifier (PyTorch)")
+    print(f"Training {'Improved ' if use_improved else ''}MLP Classifier (PyTorch)")
     print("=" * 80)
     
     mlp_config = config['types']['mlp']
@@ -120,12 +148,25 @@ def train_mlp_pytorch(X_train, y_train, X_val, y_val, config, num_classes):
     )
     
     # Initialize model
-    model = MLPClassifierPyTorch(
-        input_dim=X_train.shape[1],
-        hidden_layers=mlp_config['hidden_layers'],
-        num_classes=num_classes,
-        dropout=mlp_config['dropout']
-    ).to(device)
+    if use_improved:
+        # Disable BatchNorm on CPU to avoid segfault on macOS
+        use_bn = device.type == 'cuda'
+        model = ImprovedMLPClassifier(
+            input_dim=X_train.shape[1],
+            hidden_dims=[512, 384, 256, 128],
+            num_classes=num_classes,
+            dropout=0.4,
+            use_batchnorm=use_bn
+        ).to(device)
+        if not use_bn:
+            print("\nNote: BatchNorm disabled on CPU (prevents segfault on macOS)")
+    else:
+        model = MLPClassifierPyTorch(
+            input_dim=X_train.shape[1],
+            hidden_layers=mlp_config['hidden_layers'],
+            num_classes=num_classes,
+            dropout=mlp_config['dropout']
+        ).to(device)
     
     print(f"\nModel architecture:")
     print(model)
@@ -144,12 +185,30 @@ def train_mlp_pytorch(X_train, y_train, X_val, y_val, config, num_classes):
         print(f"  Class {i}: {weight:.3f}")
     
     # Loss and optimizer with class weights
-    criterion = nn.CrossEntropyLoss(weight=class_weights_tensor)
-    optimizer = optim.Adam(model.parameters(), lr=mlp_config['learning_rate'])
+    # Use standard CrossEntropyLoss without class weights on macOS to avoid segfault
+    import platform
+    if platform.system() == 'Darwin' and device.type == 'cpu':
+        print("\nNote: Using unweighted loss on macOS CPU to avoid segfault")
+        criterion = nn.CrossEntropyLoss()
+    else:
+        criterion = nn.CrossEntropyLoss(weight=class_weights_tensor)
+    
+    if use_improved:
+        # Use standard Adam instead of AdamW on macOS CPU
+        if platform.system() == 'Darwin' and device.type == 'cpu':
+            optimizer = optim.Adam(model.parameters(), lr=0.0005)
+        else:
+            optimizer = optim.AdamW(model.parameters(), lr=0.0005, weight_decay=0.01)
+        scheduler = optim.lr_scheduler.ReduceLROnPlateau(
+            optimizer, mode='min', factor=0.5, patience=5
+        )
+    else:
+        optimizer = optim.Adam(model.parameters(), lr=mlp_config['learning_rate'])
+        scheduler = None
     
     # Training loop
     epochs = mlp_config['epochs']
-    patience = mlp_config['early_stopping_patience']
+    patience = mlp_config['early_stopping_patience'] if not use_improved else 15
     
     best_val_loss = float('inf')
     patience_counter = 0
@@ -187,8 +246,13 @@ def train_mlp_pytorch(X_train, y_train, X_val, y_val, config, num_classes):
             val_acc = (predicted == y_val_tensor).float().mean().item()
             val_accuracies.append(val_acc)
         
-        # Print progress every 5 epochs
-        if (epoch + 1) % 5 == 0:
+        # Learning rate scheduling (improved model only)
+        if scheduler is not None:
+            scheduler.step(val_loss)
+        
+        # Print progress every 5 epochs (or 10 for improved)
+        print_freq = 10 if use_improved else 5
+        if (epoch + 1) % print_freq == 0:
             print(f"Epoch {epoch+1}/{epochs} - "
                   f"Train Loss: {train_loss:.4f}, "
                   f"Val Loss: {val_loss:.4f}, "
@@ -214,34 +278,116 @@ def train_mlp_pytorch(X_train, y_train, X_val, y_val, config, num_classes):
     
     return model, train_losses, val_losses, val_accuracies
 
-def train_sklearn_classifier(X_train, y_train, classifier_type, config):
+def train_sklearn_mlp(X_train, y_train, use_improved=False):
+    """
+    Train sklearn MLP (safer on macOS, no segfault issues)
+    """
+    print("\n" + "=" * 80)
+    print(f"Training {'Improved ' if use_improved else ''}MLP (sklearn)")
+    print("=" * 80)
+    
+    if use_improved:
+        # Deeper architecture matching improved PyTorch version
+        model = SklearnMLP(
+            hidden_layer_sizes=(512, 384, 256, 128),
+            activation='relu',
+            solver='adam',
+            alpha=0.001,
+            batch_size=32,
+            learning_rate='adaptive',
+            learning_rate_init=0.0005,
+            max_iter=200,
+            early_stopping=True,
+            validation_fraction=0.2,
+            n_iter_no_change=15,
+            random_state=42,
+            verbose=True
+        )
+    else:
+        model = SklearnMLP(
+            hidden_layer_sizes=(512, 256, 128),
+            activation='relu',
+            solver='adam',
+            alpha=0.0001,
+            batch_size=32,
+            learning_rate='adaptive',
+            max_iter=100,
+            early_stopping=True,
+            validation_fraction=0.2,
+            random_state=42,
+            verbose=True
+        )
+    
+    print("\nTraining sklearn MLP...")
+    model.fit(X_train, y_train)
+    print("\nTraining complete!")
+    
+    return model
+
+def train_sklearn_classifier(X_train, y_train, X_val, y_val, classifier_type, config, use_improved=False):
     """
     Train a scikit-learn classifier
     
     Args:
         X_train: Training features
         y_train: Training labels
+        X_val: Validation features
+        y_val: Validation labels
         classifier_type: Type of classifier (xgboost, svm, random_forest)
         config: Classifier configuration
+        use_improved: Use improved hyperparameters
         
     Returns:
         Trained classifier
     """
     print(f"\n" + "=" * 80)
-    print(f"Training {classifier_type.upper()} Classifier")
+    print(f"Training {'Improved ' if use_improved else ''}{classifier_type.upper()} Classifier")
     print("=" * 80)
     
     clf_config = config['types'][classifier_type]
     
     if classifier_type == 'xgboost':
-        classifier = xgb.XGBClassifier(
-            n_estimators=clf_config['n_estimators'],
-            max_depth=clf_config['max_depth'],
-            learning_rate=clf_config['learning_rate'],
-            subsample=clf_config['subsample'],
-            colsample_bytree=clf_config['colsample_bytree'],
-            random_state=config['seed']
-        )
+        if use_improved:
+            # Compute class weights
+            class_weights = compute_class_weight(
+                'balanced',
+                classes=np.unique(y_train),
+                y=y_train
+            )
+            sample_weights = np.array([class_weights[y] for y in y_train])
+            
+            classifier = xgb.XGBClassifier(
+                n_estimators=500,
+                max_depth=8,
+                learning_rate=0.05,
+                subsample=0.8,
+                colsample_bytree=0.8,
+                min_child_weight=3,
+                gamma=0.1,
+                reg_alpha=0.1,
+                reg_lambda=1.0,
+                random_state=config['seed'],
+                eval_metric='mlogloss',
+                early_stopping_rounds=20
+            )
+            
+            print("\nTraining with improved hyperparameters and sample weighting...")
+            classifier.fit(
+                X_train, y_train,
+                sample_weight=sample_weights,
+                eval_set=[(X_val, y_val)],
+                verbose=20
+            )
+            return classifier
+        else:
+            classifier = xgb.XGBClassifier(
+                n_estimators=clf_config['n_estimators'],
+                max_depth=clf_config['max_depth'],
+                learning_rate=clf_config['learning_rate'],
+                subsample=clf_config['subsample'],
+                colsample_bytree=clf_config['colsample_bytree'],
+                random_state=config['seed']
+            )
     
     elif classifier_type == 'svm':
         classifier = SVC(
@@ -263,14 +409,55 @@ def train_sklearn_classifier(X_train, y_train, classifier_type, config):
     else:
         raise ValueError(f"Unknown classifier type: {classifier_type}")
     
-    print(f"\nTraining {classifier_type}...")
-    classifier.fit(X_train, y_train)
-    
-    print("Training complete!")
+    if not use_improved or classifier_type != 'xgboost':
+        print(f"\nTraining {classifier_type}...")
+        classifier.fit(X_train, y_train)
+        print("Training complete!")
     
     return classifier
 
-def train_and_evaluate(features_file: str, labels_file: str, classifier_type: str = None):
+def ensemble_predictions(models, X, model_types):
+    """
+    Ensemble predictions from multiple models using majority voting
+    
+    Args:
+        models: List of trained models
+        X: Input features
+        model_types: List of model types ('mlp', 'xgboost', etc.)
+        
+    Returns:
+        numpy array of ensemble predictions
+    """
+    predictions = []
+    
+    for model, model_type in zip(models, model_types):
+        if model_type == 'mlp':
+            # Check if PyTorch or sklearn model
+            if isinstance(model, nn.Module):
+                # PyTorch model
+                model.eval()
+                with torch.no_grad():
+                    X_tensor = torch.FloatTensor(X)
+                    outputs = model(X_tensor)
+                    _, pred = torch.max(outputs, 1)
+                    predictions.append(pred.numpy())
+            else:
+                # sklearn MLP
+                predictions.append(model.predict(X))
+        else:
+            predictions.append(model.predict(X))
+    
+    # Majority voting
+    predictions = np.array(predictions)
+    ensemble_pred = []
+    for i in range(predictions.shape[1]):
+        votes = predictions[:, i]
+        ensemble_pred.append(np.bincount(votes).argmax())
+    
+    return np.array(ensemble_pred)
+
+def train_and_evaluate(features_file: str, labels_file: str, classifier_type: str = None, 
+                      use_improved: bool = False, use_ensemble: bool = False):
     """
     Main training and evaluation pipeline
     
@@ -278,6 +465,8 @@ def train_and_evaluate(features_file: str, labels_file: str, classifier_type: st
         features_file (str): Path to .npy file with features
         labels_file (str): Path to CSV file with labels
         classifier_type (str): Type of classifier (None = use config default)
+        use_improved (bool): Use improved architectures/hyperparameters
+        use_ensemble (bool): Train ensemble of MLP + XGBoost
     """
     print("=" * 80)
     print("Classifier Training Pipeline")
@@ -335,19 +524,56 @@ def train_and_evaluate(features_file: str, labels_file: str, classifier_type: st
     print(f"\nTrain samples: {len(X_train)}")
     print(f"Validation samples: {len(X_val)}")
     
-    # Train classifier
-    if classifier_type == 'mlp':
-        model, train_losses, val_losses, val_accs = train_mlp_pytorch(
+    # Train classifier(s)
+    if use_ensemble:
+        print("\n" + "=" * 80)
+        print("ENSEMBLE MODE: Training MLP + XGBoost")
+        print("=" * 80)
+        
+        # Use sklearn MLP on macOS to avoid segfault
+        import platform
+        if platform.system() == 'Darwin':
+            print("\nUsing sklearn MLP (avoids PyTorch segfault on macOS)")
+            mlp_model = train_sklearn_mlp(X_train, y_train, use_improved=use_improved)
+        else:
+            mlp_model, _, _, _ = train_mlp_pytorch(
+                X_train, y_train, X_val, y_val,
+                classifier_config, len(label_encoder.classes_),
+                use_improved=use_improved
+            )
+            mlp_model = mlp_model.cpu()
+        
+        # Train XGBoost
+        xgb_model = train_sklearn_classifier(
             X_train, y_train, X_val, y_val,
-            classifier_config, len(label_encoder.classes_)
+            'xgboost', classifier_config,
+            use_improved=use_improved
         )
         
-        # Convert model to CPU for saving
-        model = model.cpu()
+        # Store both models
+        model = {'mlp': mlp_model, 'xgboost': xgb_model}
+        classifier_type = 'ensemble'
+        
+    elif classifier_type == 'mlp':
+        # Use sklearn MLP on macOS to avoid segfault
+        import platform
+        if platform.system() == 'Darwin':
+            print("\nUsing sklearn MLP (avoids PyTorch segfault on macOS)")
+            model = train_sklearn_mlp(X_train, y_train, use_improved=use_improved)
+        else:
+            model, train_losses, val_losses, val_accs = train_mlp_pytorch(
+                X_train, y_train, X_val, y_val,
+                classifier_config, len(label_encoder.classes_),
+                use_improved=use_improved
+            )
+            # Convert model to CPU for saving
+            model = model.cpu()
         
     else:
         model = train_sklearn_classifier(
-            X_train, y_train, classifier_type, classifier_config
+            X_train, y_train, X_val, y_val,
+            classifier_type, classifier_config,
+            use_improved=use_improved
         )
     
     # Evaluate on validation set
@@ -355,14 +581,26 @@ def train_and_evaluate(features_file: str, labels_file: str, classifier_type: st
     print("Validation Set Evaluation")
     print("=" * 80)
     
-    if classifier_type == 'mlp':
-        # PyTorch model prediction
-        model.eval()
-        with torch.no_grad():
-            X_val_tensor = torch.FloatTensor(X_val)
-            outputs = model(X_val_tensor)
-            _, y_pred = torch.max(outputs, 1)
-            y_pred = y_pred.numpy()
+    if classifier_type == 'ensemble':
+        # Ensemble prediction
+        y_pred = ensemble_predictions(
+            [model['mlp'], model['xgboost']],
+            X_val,
+            ['mlp', 'xgboost']
+        )
+    elif classifier_type == 'mlp':
+        # Check if PyTorch or sklearn model
+        if isinstance(model, nn.Module):
+            # PyTorch model prediction
+            model.eval()
+            with torch.no_grad():
+                X_val_tensor = torch.FloatTensor(X_val)
+                outputs = model(X_val_tensor)
+                _, y_pred = torch.max(outputs, 1)
+                y_pred = y_pred.numpy()
+        else:
+            # sklearn MLP prediction
+            y_pred = model.predict(X_val)
     else:
         # sklearn classifier prediction
         y_pred = model.predict(X_val)
@@ -392,7 +630,8 @@ def train_and_evaluate(features_file: str, labels_file: str, classifier_type: st
     output_dir.mkdir(parents=True, exist_ok=True)
     
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    model_name = f"{classifier_type}_{timestamp}"
+    improved_tag = "_improved" if use_improved else ""
+    model_name = f"{classifier_type}{improved_tag}_{timestamp}"
     
     # Save model
     model_path = output_dir / f"{model_name}.pkl"
@@ -402,7 +641,9 @@ def train_and_evaluate(features_file: str, labels_file: str, classifier_type: st
             'label_encoder': label_encoder,
             'classifier_type': classifier_type,
             'feature_dim': X.shape[1],
-            'config': classifier_config
+            'config': classifier_config,
+            'improved': use_improved,
+            'ensemble': use_ensemble
         }, f)
     
     print(f"\nModel saved to: {model_path}")
@@ -450,17 +691,30 @@ def plot_confusion_matrix(cm, class_names, output_dir, model_name):
 
 def main():
     """Example usage"""
-    print("\nExample Usage:")
-    print("-" * 80)
-    print("from scripts.classifier.train_classifier import train_and_evaluate")
-    print()
-    print("# Train MLP classifier on extracted features")
-    print("train_and_evaluate(")
-    print("    features_file='data/features/train_features.npy',")
-    print("    labels_file='data/annotated/fingpt_annotated_high_confidence.csv',")
-    print("    classifier_type='mlp'  # Options: mlp, xgboost, svm, random_forest")
-    print(")")
-    print("-" * 80)
+    import argparse
+    
+    parser = argparse.ArgumentParser(description='Train classifier on extracted features')
+    parser.add_argument('--features', type=str, required=True,
+                       help='Path to features .npy file')
+    parser.add_argument('--labels', type=str, required=True,
+                       help='Path to labels CSV file')
+    parser.add_argument('--classifier', type=str, default='mlp',
+                       choices=['mlp', 'xgboost', 'svm', 'random_forest'],
+                       help='Classifier type')
+    parser.add_argument('--improved', action='store_true',
+                       help='Use improved architecture/hyperparameters')
+    parser.add_argument('--ensemble', action='store_true',
+                       help='Train ensemble of MLP + XGBoost')
+    
+    args = parser.parse_args()
+    
+    train_and_evaluate(
+        features_file=args.features,
+        labels_file=args.labels,
+        classifier_type=args.classifier,
+        use_improved=args.improved,
+        use_ensemble=args.ensemble
+    )
 
 if __name__ == "__main__":
     main()

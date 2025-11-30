@@ -1,6 +1,6 @@
 """
 Complete FinEmo-LoRA Pipeline Runner
-Execute the entire training pipeline from data collection to evaluation
+Supports both logits-based and LoRA approaches
 """
 
 import argparse
@@ -20,15 +20,20 @@ def run_command(command, description):
     Run a shell command and handle errors
     
     Args:
-        command (str): Command to execute
+        command (str or list): Command to execute (string for shell=True, list for shell=False)
         description (str): Description of the step
     """
     print("\n" + "=" * 80)
     print(f"Step: {description}")
     print("=" * 80)
-    print(f"Command: {command}\n")
     
-    result = subprocess.run(command, shell=True)
+    # If command is a list, use shell=False for better path handling
+    if isinstance(command, list):
+        print(f"Command: {' '.join(command)}\n")
+        result = subprocess.run(command, shell=False)
+    else:
+        print(f"Command: {command}\n")
+        result = subprocess.run(command, shell=True)
     
     if result.returncode != 0:
         print(f"\nError: Step '{description}' failed with exit code {result.returncode}")
@@ -36,8 +41,83 @@ def run_command(command, description):
     
     print(f"\nStep '{description}' completed successfully!")
 
+def run_logits_pipeline(scale_data=True, improved=True, ensemble=False):
+    """
+    Run the logits-based classification pipeline
+    
+    Args:
+        scale_data: Whether to scale dataset to 500 samples
+        improved: Use improved architecture/hyperparameters
+        ensemble: Train ensemble model
+    """
+    python = sys.executable
+    
+    print("\n" + "=" * 80)
+    print("LOGITS-BASED CLASSIFICATION PIPELINE")
+    print("=" * 80)
+    
+    # Step 1: Scale dataset (optional)
+    if scale_data:
+        run_command(
+            [python, "scripts/annotation/scale_dataset.py"],
+            "Scale dataset to 500 samples with GPT-4 annotation"
+        )
+        features_file = "data/features/train_features_scaled.npy"
+        labels_file = "data/annotated/fingpt_annotated_scaled.csv"
+    else:
+        features_file = "data/features/train_features.npy"
+        labels_file = "data/annotated/fingpt_annotated_v2.csv"
+    
+    # Step 2: Extract features
+    output_features = features_file
+    run_command(
+        [python, "scripts/feature_extraction/extract_features.py",
+         "--input", labels_file, "--output", output_features],
+        "Extract DistilBERT features"
+    )
+    
+    # Step 3: Train classifier
+    classifier_cmd = [python, "scripts/classifier/train_classifier.py",
+                      "--features", features_file, "--labels", labels_file]
+    
+    if ensemble:
+        classifier_cmd.append("--ensemble")
+    else:
+        classifier_cmd.extend(["--classifier", "mlp"])
+    
+    if improved:
+        classifier_cmd.append("--improved")
+    
+    run_command(
+        classifier_cmd,
+        f"Train {'improved ' if improved else ''}{'ensemble' if ensemble else 'MLP'} classifier"
+    )
+    
+    print("\n" + "=" * 80)
+    print("LOGITS PIPELINE COMPLETE")
+    print("=" * 80)
+
 def main():
     parser = argparse.ArgumentParser(description='FinEmo-LoRA Pipeline Runner')
+    
+    # Pipeline type
+    parser.add_argument('--pipeline', type=str, default='logits',
+                       choices=['logits', 'lora', 'all'],
+                       help='Pipeline to run: logits (default), lora, or all')
+    
+    # Logits pipeline options
+    parser.add_argument('--scale-data', action='store_true', default=True,
+                       help='Scale dataset to 500 samples (default: True)')
+    parser.add_argument('--no-scale', action='store_false', dest='scale_data',
+                       help='Skip dataset scaling')
+    parser.add_argument('--improved', action='store_true', default=True,
+                       help='Use improved architecture (default: True)')
+    parser.add_argument('--no-improved', action='store_false', dest='improved',
+                       help='Use basic architecture')
+    parser.add_argument('--ensemble', action='store_true',
+                       help='Train ensemble model (MLP + XGBoost)')
+    
+    # LoRA pipeline options (for future)
     parser.add_argument('--skip-download', action='store_true', 
                        help='Skip data download steps')
     parser.add_argument('--skip-annotation', action='store_true',
@@ -55,8 +135,25 @@ def main():
                        help='Run only a specific stage: evaluate, download, annotation, stage1, stage2, train (stage1+stage2), or all')
     
     args = parser.parse_args()
+    
+    # Route to appropriate pipeline
+    if args.pipeline == 'logits':
+        run_logits_pipeline(
+            scale_data=args.scale_data,
+            improved=args.improved,
+            ensemble=args.ensemble
+        )
+        return
+    elif args.pipeline == 'all':
+        run_logits_pipeline(
+            scale_data=args.scale_data,
+            improved=args.improved,
+            ensemble=args.ensemble
+        )
+        print("\n\nNote: LoRA pipeline not yet implemented. Run logits pipeline only.")
+        return
 
-    # If a specific --stage is provided, map it to the existing skip flags
+    # If a specific --stage is provided, map it to the existing skip flags (LoRA pipeline)
     if args.stage != 'all':
         if args.stage == 'evaluate':
             # Only run evaluation

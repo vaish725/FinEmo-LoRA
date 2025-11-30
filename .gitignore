@@ -35,6 +35,7 @@ venv/
 ENV/
 env/
 .venv
+.venv/
 
 # Jupyter Notebook
 .ipynb_checkpoints
@@ -78,6 +79,7 @@ Thumbs.db
 *.bak
 *.log
 *.cache
+temp_data/
 
 # Hugging Face cache
 .cache/

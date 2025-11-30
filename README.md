@@ -28,10 +28,41 @@ Traditional financial sentiment analysis oversimplifies market reactions into ba
 **Current Status (Deliverable II):**
 - ✅ Data collection and preprocessing pipeline complete
 - ✅ GPT-4-based annotation system implemented
+- ✅ Dataset scaled to 540 samples
 - ✅ Lightweight classifier (DistilBERT + MLP) trained and evaluated
 - ✅ Error analysis and annotation quality review completed
-- 🔄 Dataset cleaning and retraining in progress
-- ⏳ LoRA fine-tuning pipeline next phase
+- ⚠️ PyTorch training blocked on macOS (segfault issue)
+- 💡 **Solution: Use Google Colab** - See [COLAB_INSTRUCTIONS.md](COLAB_INSTRUCTIONS.md)
+
+---
+
+## 🚀 Quick Start
+
+### Option 1: Google Colab (Recommended for Training)
+
+**Why Colab?** PyTorch has segmentation fault issues on macOS with BatchNorm/weighted loss. Colab provides free GPU access with no issues.
+
+1. Open [notebooks/FinEmo_Training_Colab.ipynb](notebooks/FinEmo_Training_Colab.ipynb) in Google Colab
+2. Upload `data/annotated/fingpt_annotated_scaled.csv` and `data/features/train_features_scaled.npy`
+3. Run all cells
+4. Expected accuracy: **60-70%** (vs 46% on macOS)
+
+See [COLAB_INSTRUCTIONS.md](COLAB_INSTRUCTIONS.md) for detailed instructions.
+
+### Option 2: Local Training (macOS/Linux)
+
+```bash
+# Run complete pipeline
+python3 run_pipeline.py --pipeline logits --improved
+
+# Or train manually
+python3 scripts/classifier/train_classifier.py \
+  --features data/features/train_features_scaled.npy \
+  --labels data/annotated/fingpt_annotated_scaled.csv \
+  --classifier xgboost --improved
+```
+
+**Note:** Deep MLP training will fail on macOS due to PyTorch bug. Use XGBoost or Colab instead.
 
 ---
 

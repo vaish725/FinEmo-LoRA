@@ -301,23 +301,27 @@ def extract_and_save_features(input_file: str, output_file: str, text_column: st
 
 def main():
     """
-    Example usage of feature extraction
+    CLI for feature extraction
     """
-    print("\nExample Usage:")
-    print("-" * 80)
-    print("from scripts.feature_extraction.extract_features import extract_and_save_features")
-    print()
-    print("# Extract features from annotated data")
-    print("extract_and_save_features(")
-    print("    input_file='data/annotated/fingpt_annotated_high_confidence.csv',")
-    print("    output_file='data/features/train_features.npy',")
-    print("    text_column='text'")
-    print(")")
-    print("-" * 80)
-    print()
-    print("This script extracts features WITHOUT training the LLM.")
-    print("The LLM is frozen and used only as a feature extractor.")
-    print("This is much faster than fine-tuning!")
+    import argparse
+    
+    parser = argparse.ArgumentParser(
+        description='Extract features from text data using pre-trained LLM (frozen)'
+    )
+    parser.add_argument('--input', type=str, required=True,
+                       help='Path to input CSV file')
+    parser.add_argument('--output', type=str, required=True,
+                       help='Path to output .npy file')
+    parser.add_argument('--text-column', type=str, default='text',
+                       help='Name of text column in CSV (default: text)')
+    
+    args = parser.parse_args()
+    
+    extract_and_save_features(
+        input_file=args.input,
+        output_file=args.output,
+        text_column=args.text_column
+    )
 
 if __name__ == "__main__":
     main()
