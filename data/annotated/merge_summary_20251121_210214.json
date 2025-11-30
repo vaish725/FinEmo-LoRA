@@ -1,0 +1,17 @@
+{
+  "timestamp": "20251121_210214",
+  "original_samples": 200,
+  "merged_samples": 189,
+  "optimism_original": 83,
+  "optimism_merged": 54,
+  "imbalance_original": 13.833333333333334,
+  "imbalance_merged": 12.666666666666666,
+  "emotion_distribution": {
+    "anxiety": 22,
+    "excitement": 19,
+    "fear": 12,
+    "hope": 6,
+    "optimism": 54,
+    "uncertainty": 76
+  }
+}
