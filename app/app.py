@@ -13,7 +13,7 @@ sys.path.append(str(Path(__file__).parent.parent))
 # Page configuration
 st.set_page_config(
     page_title="FinEmo-LoRA Dashboard",
-    page_icon="📈",
+    page_icon="",
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -66,22 +66,22 @@ with st.sidebar:
     # Navigation
     page = st.radio(
         "Navigate to:",
-        ["🏠 Home", "🔮 Single Prediction", "📊 Batch Analysis", 
-         "📈 Model Comparison", "📚 Documentation"],
+        [" Home", " Single Prediction", " Batch Analysis", 
+         " Model Comparison", " Documentation"],
         index=0
     )
     
     st.markdown("---")
-    st.markdown("### 🎯 Model Performance")
+    st.markdown("###  Model Performance")
     st.metric("Accuracy", "61.0%", "+8.3pp from v1")
     st.metric("Macro F1", "0.61", "+114% vs v1")
     
     st.markdown("---")
-    st.markdown("### 🏆 Achievements")
-    st.markdown("✅ Target exceeded (55.6%)")
-    st.markdown("✅ Hope: 0% → 82%")
-    st.markdown("✅ Fear: 0% → 76%")
-    st.markdown("✅ Excitement: 5% → 39%")
+    st.markdown("###  Achievements")
+    st.markdown(" Target exceeded (55.6%)")
+    st.markdown(" Hope: 0% → 82%")
+    st.markdown(" Fear: 0% → 76%")
+    st.markdown(" Excitement: 5% → 39%")
     
     st.markdown("---")
     st.caption("Developed by Vaishnavi Kamdi")
@@ -89,19 +89,19 @@ with st.sidebar:
 
 # Main content area
 try:
-    if page == "🏠 Home":
+    if page == " Home":
         from pages import home
         home.show()
-    elif page == "🔮 Single Prediction":
+    elif page == " Single Prediction":
         from pages import prediction
         prediction.show()
-    elif page == "📊 Batch Analysis":
+    elif page == " Batch Analysis":
         from pages import batch_analysis
         batch_analysis.show()
-    elif page == "📈 Model Comparison":
+    elif page == " Model Comparison":
         from pages import comparison
         comparison.show()
-    elif page == "📚 Documentation":
+    elif page == " Documentation":
         from pages import documentation
         documentation.show()
 except Exception as e:

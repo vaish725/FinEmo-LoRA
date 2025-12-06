@@ -1,6 +1,6 @@
 """
 Single Text Prediction Page
-Place this file as: pages/1_🔮_Prediction.py
+Place this file as: pages/1__Prediction.py
 """
 
 import streamlit as st
@@ -10,16 +10,16 @@ from pathlib import Path
 # Add parent to path
 sys.path.append(str(Path(__file__).parent.parent))
 
-st.set_page_config(page_title="Prediction", page_icon="🔮", layout="wide")
+st.set_page_config(page_title="Prediction", page_icon="", layout="wide")
 
-st.title("🔮 Single Text Prediction")
+st.title(" Single Text Prediction")
 st.markdown("Analyze financial text for emotion classification in real-time.")
 
 # Model loading section
-model_path = Path(__file__).parent.parent.parent / "models" / "finemo-lora-final-v2"
+model_path = Path(__file__).parent.parent.parent / "models" / "finemo_lora_v2_best"
 
 if not model_path.exists():
-    st.error(f"⚠️ Model not found at: {model_path}")
+    st.error(f" Model not found at: {model_path}")
     st.info("Please ensure the LoRA v2 model files are in the `models/finemo-lora-final-v2/` directory")
     st.stop()
 
@@ -50,7 +50,7 @@ if model is None:
     st.error("Failed to load model")
     st.stop()
 
-st.success("✅ Model loaded successfully!")
+st.success(" Model loaded successfully!")
 
 # Example texts
 examples = {
@@ -77,7 +77,7 @@ else:
     )
 
 # Predict button
-if st.button("🔍 Analyze Emotion", type="primary"):
+if st.button(" Analyze Emotion", type="primary"):
     if not text_input.strip():
         st.warning("Please enter some text")
     else:
@@ -102,7 +102,7 @@ if st.button("🔍 Analyze Emotion", type="primary"):
             
             # Display results
             st.markdown("---")
-            st.subheader("📊 Results")
+            st.subheader(" Results")
             
             col1, col2 = st.columns([2, 1])
             
@@ -126,4 +126,4 @@ if st.button("🔍 Analyze Emotion", type="primary"):
                 st.progress(float(prob), text=f"{emotion}: {prob:.1%}")
 
 st.markdown("---")
-st.info("💡 **Tip:** The model works best with financial news, market analysis, and economic commentary.")
+st.info(" **Tip:** The model works best with financial news, market analysis, and economic commentary.")

@@ -11,25 +11,25 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from utils.model_utils import EMOTIONS, EMOTION_DESCRIPTIONS
 
 # Page config
-st.title("📚 Documentation")
+st.title(" Documentation")
 st.markdown("Complete guide to the FinEmo-LoRA system and methodology.")
 
 # Table of contents
 st.markdown("""
 **Quick Navigation:**
-- 📖 [Project Overview](#project-overview)
-- 🏗️ [Model Architecture](#model-architecture)
-- 🔬 [Training Methodology](#training-methodology)
-- 📊 [Usage Guide](#usage-guide)
-- 🔧 [API Reference](#api-reference)
-- 📈 [Performance Analysis](#performance-analysis)
-- 🚀 [Future Work](#future-work)
+-  [Project Overview](#project-overview)
+-  [Model Architecture](#model-architecture)
+-  [Training Methodology](#training-methodology)
+-  [Usage Guide](#usage-guide)
+-  [API Reference](#api-reference)
+-  [Performance Analysis](#performance-analysis)
+-  [Future Work](#future-work)
 """)
 
 st.markdown("---")
 
 # Project Overview
-st.header("📖 Project Overview")
+st.header(" Project Overview")
 
 st.markdown("""
 **FinEmo-LoRA** is an end-to-end financial emotion detection system that classifies financial texts 
@@ -55,24 +55,90 @@ col1, col2 = st.columns(2)
 with col1:
     st.markdown("""
     ### Key Features
-    - 🎯 **6 Financial Emotions**: Anxiety, Excitement, Fear, Hope, Optimism, Uncertainty
-    - 🚀 **61% Accuracy**: Exceeds 55.6% baseline
-    - 💾 **2.8MB Model**: Efficient LoRA adapters only
-    - ⚡ **Fast Inference**: DistilBERT base (3x faster than BERT)
+    -  **6 Financial Emotions**: Anxiety, Excitement, Fear, Hope, Optimism, Uncertainty
+    -  **76.8% Accuracy**: Exceeds 46.3% baseline by +30.5pp
+    -  **3.8MB Model**: Efficient LoRA adapters only
+    -  **Fast Inference**: DistilBERT base (3x faster than BERT)
     """)
 
 with col2:
     st.markdown("""
     ### Applications
-    - 📈 **Market Analysis**: Detect investor sentiment shifts
-    - 📰 **News Monitoring**: Track emotional tone in financial news
-    - 💬 **Social Media**: Analyze retail investor discussions
-    - 🔔 **Alert Systems**: Trigger warnings on fear/anxiety spikes
+    -  **Market Analysis**: Detect investor sentiment shifts
+    -  **News Monitoring**: Track emotional tone in financial news
+    -  **Social Media**: Analyze retail investor discussions
+    -  **Alert Systems**: Trigger warnings on fear/anxiety spikes
     """)
 
 # Model Architecture
 st.markdown("---")
-st.header("🏗️ Model Architecture")
+st.header(" Model Architecture")
+
+# Visual Architecture Diagram
+st.markdown("### Architecture Diagram")
+
+# Create a visual block diagram using columns and styled containers
+st.markdown("""
+<style>
+.arch-box {
+    background: #ffffff;
+    border: 2px solid #333333;
+    padding: 20px;
+    border-radius: 8px;
+    text-align: center;
+    color: #333333;
+    font-weight: 600;
+    margin: 8px 0;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+.arch-box-highlight {
+    background: #f5f5f5;
+    border: 3px solid #000000;
+    padding: 20px;
+    border-radius: 8px;
+    text-align: center;
+    color: #000000;
+    font-weight: 700;
+    margin: 8px 0;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+}
+.arch-arrow {
+    text-align: center;
+    font-size: 28px;
+    color: #333333;
+    margin: 8px 0;
+    font-weight: bold;
+}
+.arch-small {
+    font-size: 0.85em;
+    font-weight: 400;
+    color: #666666;
+    margin-top: 5px;
+}
+</style>
+""", unsafe_allow_html=True)
+
+col_left, col_mid, col_right = st.columns([1, 2, 1])
+
+with col_mid:
+    st.markdown('<div class="arch-box">Input: Financial Text</div>', unsafe_allow_html=True)
+    st.markdown('<div class="arch-arrow">↓</div>', unsafe_allow_html=True)
+    
+    st.markdown('<div class="arch-box">Tokenizer<br/><span class="arch-small">(DistilBERT Tokenizer)</span></div>', unsafe_allow_html=True)
+    st.markdown('<div class="arch-arrow">↓</div>', unsafe_allow_html=True)
+    
+    st.markdown('<div class="arch-box">DistilBERT Base<br/><span class="arch-small">6 Layers | 768 Dims | 67.7M Params</span></div>', unsafe_allow_html=True)
+    st.markdown('<div class="arch-arrow">↓</div>', unsafe_allow_html=True)
+    
+    st.markdown('<div class="arch-box-highlight">LoRA Adapters<br/><span class="arch-small">r=8, α=16 | 742K Params (1.1%)</span></div>', unsafe_allow_html=True)
+    st.markdown('<div class="arch-arrow">↓</div>', unsafe_allow_html=True)
+    
+    st.markdown('<div class="arch-box">Classification Head<br/><span class="arch-small">6 Emotion Classes</span></div>', unsafe_allow_html=True)
+    st.markdown('<div class="arch-arrow">↓</div>', unsafe_allow_html=True)
+    
+    st.markdown('<div class="arch-box">Output: Emotion + Confidence</div>', unsafe_allow_html=True)
+
+st.markdown("---")
 
 col1, col2 = st.columns(2)
 
@@ -103,7 +169,7 @@ with col2:
     - Target modules: **q_lin, v_lin** (query & value projections)
     - Trainable params: **742,662** (1.1% of total)
     - Dropout: **0.1**
-    - Adapter size: **2.8MB**
+    - Adapter size: **3.8MB**
     
     **Advantages:**
     - No base model modification
@@ -125,16 +191,16 @@ st.markdown("""
 
 **Stage 2: Domain Adaptation (Financial Data)**
 - **Purpose**: Specialize for financial texts with targeted sampling
-- **Dataset**: FinGPT + targeted minority sampling (1,152 samples)
+- **Dataset**: FinGPT + synthetic data expansion (3,472 samples)
 - **Augmentation**: SMOTE (k=5) for rare classes
 - **Epochs**: 10
 - **Learning Rate**: 1e-4
-- **Result**: 61% accuracy, 0.61 F1-score
+- **Result**: 76.8% accuracy, 0.74 F1-score
 """)
 
 # Training Methodology
 st.markdown("---")
-st.header("🔬 Training Methodology")
+st.header(" Training Methodology")
 
 st.markdown("""
 ### Data Collection Strategy
@@ -166,7 +232,7 @@ Domain-specific keywords for each emotion class:
 """)
 
 # Emotion definitions
-st.subheader("🎯 Emotion Definitions")
+st.subheader(" Emotion Definitions")
 
 for emotion in EMOTIONS:
     with st.expander(f"**{emotion.capitalize()}**"):
@@ -186,47 +252,21 @@ for emotion in EMOTIONS:
 
 # Usage Guide
 st.markdown("---")
-st.header("📊 Usage Guide")
+st.header(" Usage Guide")
 
 st.markdown("""
 ### Getting Started
 
-1. **Single Prediction** (🔮 Prediction page)
-   - Enter or select a financial text
-   - Get instant emotion classification
-   - View confidence scores
-   - See detailed probabilities
-
-2. **Batch Processing** (📊 Batch Analysis page)
-   - Upload CSV with financial texts
-   - Process unlimited samples
-   - Download results with confidence scores
-   - View emotion distribution charts
-
-3. **Model Comparison** (📈 Comparison page)
-   - Compare v1 vs v2 performance
-   - Analyze per-class improvements
-   - Review training configurations
-   - Understand methodology evolution
-
-### CSV Format for Batch Processing
-
-```csv
-text
-"The market rallied on positive economic data."
-"Investors remain uncertain about future prospects."
-"Fear gripped Wall Street as indices plummeted."
-```
-
-**Requirements:**
-- Column named `text` or `content`
-- One financial text per row
-- UTF-8 encoding recommended
+**Single Prediction** ( Prediction page)
+- Enter or select a financial text
+- Get instant emotion classification
+- View confidence scores
+- See detailed probabilities
 """)
 
 # API Reference
 st.markdown("---")
-st.header("🔧 API Reference")
+st.header(" API Reference")
 
 st.markdown("""
 ### Model Loading
@@ -243,7 +283,7 @@ base_model = AutoModelForSequenceClassification.from_pretrained(
 )
 
 # Load LoRA adapters
-model = PeftModel.from_pretrained(base_model, "path/to/finemo-lora-final-v2")
+model = PeftModel.from_pretrained(base_model, "models/finemo_lora_v2_best")
 model.eval()
 ```
 
@@ -320,7 +360,7 @@ def predict_batch(texts, batch_size=32):
 
 # Performance Analysis
 st.markdown("---")
-st.header("📈 Performance Analysis")
+st.header(" Performance Analysis")
 
 col1, col2 = st.columns(2)
 
@@ -329,34 +369,40 @@ with col1:
     ### LoRA v2 Final Results
     
     **Overall Metrics:**
-    - Accuracy: **61.0%**
-    - Macro F1: **0.61**
-    - Weighted F1: **0.64**
+    - Accuracy: **76.8%**
+    - Macro F1: **0.74**
+    - Dataset: **3,472 samples**
     
-    **Per-Class F1:**
-    - Anxiety: 0.56
-    - Excitement: 0.42
-    - Fear: 0.75
-    - Hope: 0.80
-    - Optimism: 0.77
-    - Uncertainty: 0.67
+    **Key Improvements:**
+    - Hope: 0% → **95%** (+95pp)
+    - Fear: 0% → **50%** (+50pp)
+    - Excitement: 5% → **79%** (+74pp)
     """)
 
 with col2:
     st.markdown("""
     ### Key Achievements
     
-    ✅ Exceeded 55.6% baseline by +5.4pp  
-    ✅ Eliminated zero-performance classes  
-    ✅ Doubled F1-score from v1 (0.29 → 0.61)  
-    ✅ Balanced performance across all emotions  
-    ✅ Efficient 2.8MB adapter model  
-    ✅ Fast inference (<100ms per sample)  
+     Exceeded 46.3% baseline by +30.5pp  
+     Eliminated zero-recall classes  
+     Massive improvement in rare emotions  
+     Two-stage LoRA training approach  
+     Efficient 3.8MB adapter model  
+     Fast inference (<100ms per sample)  
     """)
+
+# Confusion Matrix
+st.markdown("### Confusion Matrix")
+confusion_matrix_path = Path(__file__).parent.parent.parent / "models" / "finemo_lora_final_v2_full_dataset" / "confusion_matrix_lora_v2.png"
+
+if confusion_matrix_path.exists():
+    st.image(str(confusion_matrix_path), caption="LoRA v2 Confusion Matrix - Final Model Performance", use_container_width=True)
+else:
+    st.info("Confusion matrix visualization will be displayed here once available.")
 
 # Future Work
 st.markdown("---")
-st.header("🚀 Future Work")
+st.header(" Future Work")
 
 st.markdown("""
 ### Planned Improvements
@@ -378,24 +424,11 @@ st.markdown("""
    - Incorporate entity recognition
    - Time-series emotion tracking
    - Multi-modal inputs (text + charts)
-
-4. **Production Deployment**
-   - REST API with FastAPI
-   - Real-time news feed processing
-   - Streaming analytics dashboard
-   - Confidence calibration
-   - A/B testing framework
-
-5. **Research Directions**
-   - Emotion causality analysis
-   - Cross-market emotion transfer
-   - Explainable AI for predictions
-   - Emotion dynamics over time
 """)
 
 # Contact and Citation
 st.markdown("---")
-st.header("📧 Contact & Citation")
+st.header(" Contact & Citation")
 
 st.markdown("""
 ### Project Information
@@ -421,7 +454,7 @@ GitHub: [vaish725/FinEmo-LoRA](https://github.com/vaish725/FinEmo-LoRA)
 st.markdown("---")
 st.markdown("""
 <div style='text-align: center; color: #666; padding: 20px;'>
-    <p>Built with ❤️ using Streamlit and HuggingFace Transformers</p>
+    <p>Built with  using Streamlit and HuggingFace Transformers</p>
     <p>FinEmo-LoRA v2 | Parameter-Efficient Financial Emotion Detection</p>
 </div>
 """, unsafe_allow_html=True)
