@@ -41,8 +41,8 @@ Interactive web application for financial emotion detection using LoRA-enhanced 
 git clone https://github.com/vaish725/FinEmo-LoRA.git
 cd FinEmo-LoRA
 
-# Install dashboard dependencies
-pip install -r requirements_app.txt
+# Install all dependencies (includes dashboard)
+pip install -r requirements.txt
 ```
 
 ### 2. Verify Model Files

@@ -11,7 +11,7 @@ echo ""
 if ! command -v streamlit &> /dev/null; then
     echo " Streamlit not found!"
     echo "Installing dependencies..."
-    pip install -r ../requirements_app.txt
+    pip install -r ../requirements.txt
 fi
 
 # Check if model exists

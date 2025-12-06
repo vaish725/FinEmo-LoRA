@@ -187,7 +187,7 @@ class TargetedMinoritySampler:
         print(f"Found {len(scores)} candidate texts with score >= {min_score}")
         
         if len(scores) == 0:
-            print(f"⚠️ No texts found! Try lowering min_score or checking keywords.")
+            print(f" No texts found! Try lowering min_score or checking keywords.")
             return pd.DataFrame()
         
         # Sort by score (highest first) and sample
@@ -247,7 +247,7 @@ class TargetedMinoritySampler:
                 all_samples.append(sampled)
         
         if not all_samples:
-            print("\n⚠️ No samples collected!")
+            print("\n No samples collected!")
             return pd.DataFrame()
         
         # Combine all samples
@@ -271,7 +271,7 @@ class TargetedMinoritySampler:
         samples_df[['text', 'emotion_target', 'score', 'primary_matches', 'secondary_matches']].to_csv(
             output_path, index=False
         )
-        print(f"\n✅ Saved samples to: {output_path}")
+        print(f"\n Saved samples to: {output_path}")
 
 
 def annotate_samples(samples_path: str, output_path: str, batch_size: int = 50):
@@ -312,7 +312,7 @@ def annotate_samples(samples_path: str, output_path: str, batch_size: int = 50):
             annotations = annotator.annotate_batch(batch)
             all_annotations.extend(annotations)
             
-            print(f"  ✅ Annotated {len(annotations)} samples")
+            print(f"   Annotated {len(annotations)} samples")
             
             # Show distribution in this batch
             batch_emotions = [a['emotion'] for a in annotations]
@@ -321,7 +321,7 @@ def annotate_samples(samples_path: str, output_path: str, batch_size: int = 50):
             print(f"  Emotion distribution: {dict(emotion_counts)}")
             
         except Exception as e:
-            print(f"  ❌ Error in batch: {e}")
+            print(f"   Error in batch: {e}")
             continue
     
     # Convert to DataFrame and save
@@ -345,7 +345,7 @@ def annotate_samples(samples_path: str, output_path: str, batch_size: int = 50):
     print(f"\nTarget vs Actual:")
     comparison = annotations_df.groupby(['emotion_target', 'emotion']).size().unstack(fill_value=0)
     print(comparison)
-    print(f"\n✅ Saved annotations to: {output_path}")
+    print(f"\n Saved annotations to: {output_path}")
     
     # Calculate success rate for each target
     print(f"\nKeyword targeting effectiveness:")
@@ -405,7 +405,7 @@ def main():
         if len(samples_df) > 0:
             sampler.save_samples(samples_df, args.output_samples)
         else:
-            print("❌ No samples collected. Exiting.")
+            print(" No samples collected. Exiting.")
             return
     
     # Step 2: Annotate samples

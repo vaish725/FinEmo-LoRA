@@ -1,8 +1,0 @@
-{
-  "n_samples": 191,
-  "feature_dim": 768,
-  "model": "distilbert",
-  "model_name": "distilbert-base-uncased",
-  "pooling": "mean",
-  "normalized": true
-}

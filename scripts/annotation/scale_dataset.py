@@ -50,7 +50,7 @@ def analyze_current_distribution(csv_path, target_per_class=200):
         current = emotion_counts.get(emotion, 0)
         need = max(0, target_per_class - current)
         needed[emotion] = need
-        status = "✅ OK" if need == 0 else f"📈 +{need}"
+        status = " OK" if need == 0 else f" +{need}"
         print(f"  {emotion:<15} {current:>4} current → {target_per_class:>4} target  {status}")
     
     total_needed = sum(needed.values())
@@ -185,7 +185,7 @@ def main():
     needed, total_needed = analyze_current_distribution(current_annotated, args.target_per_class)
     
     if total_needed == 0:
-        print("\n✅ Dataset already has target number of samples!")
+        print("\n Dataset already has target number of samples!")
         return
     
     # Add buffer for low-confidence annotations that will be filtered out
@@ -225,7 +225,7 @@ def main():
     merge_annotations(current_annotated, temp_annotated, output_path)
     
     print("\n" + "=" * 80)
-    print("✅ SCALING COMPLETE")
+    print(" SCALING COMPLETE")
     print("=" * 80)
     print(f"\nNew dataset: {output_path}")
     print("\nNext steps:")
